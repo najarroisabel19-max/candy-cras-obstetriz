@@ -1,0 +1,1132 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ObstetriCrush - Odisea Obstétrica</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Nunito:wght@600;800;900&display=swap" rel="stylesheet">
+    
+    <style>
+        * {
+            user-select: none;
+            -webkit-user-select: none;
+            font-family: 'Fredoka', 'Nunito', sans-serif;
+            touch-action: manipulation;
+        }
+
+        body {
+            background: linear-gradient(135deg, #0f172a, #2e1065, #022c22);
+            color: #ffffff;
+            overflow-x: hidden;
+        }
+
+        /* Vivid Gradient Background Effect */
+        .bg-vivid-forest {
+            background: radial-gradient(circle at 50% 20%, rgba(236, 72, 153, 0.25), transparent 60%),
+                        radial-gradient(circle at 80% 80%, rgba(20, 184, 166, 0.25), transparent 50%),
+                        radial-gradient(circle at 10% 60%, rgba(168, 85, 247, 0.25), transparent 50%),
+                        linear-gradient(180deg, #1e1b4b 0%, #064e3b 100%);
+        }
+
+        /* Tile Grid */
+        .board-grid {
+            display: grid;
+            gap: 6px;
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(12px);
+            border-radius: 20px;
+            padding: 10px;
+            border: 3px solid rgba(244, 114, 182, 0.4);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.6), inset 0 0 20px rgba(236, 72, 153, 0.2);
+        }
+
+        .tile {
+            aspect-ratio: 1;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s ease, background 0.2s ease;
+            position: relative;
+            box-shadow: inset 0 -4px 0 rgba(0,0,0,0.3), 0 4px 6px rgba(0,0,0,0.2);
+            font-size: 1.6rem;
+        }
+
+        @media (min-width: 640px) {
+            .tile { font-size: 2.1rem; }
+        }
+
+        .tile:hover {
+            transform: scale(1.06);
+            z-index: 10;
+        }
+
+        .tile.selected {
+            transform: scale(1.12);
+            animation: pulse-border 1s infinite alternate;
+            box-shadow: 0 0 20px #e879f9, inset 0 0 10px #ffffff;
+            z-index: 20;
+        }
+
+        /* Bomb Tile Visual Styling */
+        .tile.is-bomb {
+            animation: bomb-glow 1.2s infinite alternate ease-in-out;
+            box-shadow: 0 0 18px #facc15, inset 0 0 12px #ffffff;
+            border: 3px solid #facc15 !important;
+        }
+
+        .tile.is-bomb::after {
+            content: '💣';
+            position: absolute;
+            top: -6px;
+            right: -6px;
+            font-size: 1rem;
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.8));
+            animation: bounce 0.8s infinite alternate;
+        }
+
+        /* Obstacle / Frozen Cell Visual Styling */
+        .tile.is-obstacle {
+            position: relative;
+        }
+        .tile.is-obstacle::before {
+            content: '🧊';
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            background: rgba(56, 189, 248, 0.45);
+            border: 3px solid #38bdf8;
+            border-radius: 14px;
+            backdrop-filter: blur(2px);
+            z-index: 5;
+            box-shadow: inset 0 0 8px #0284c7;
+        }
+
+        @keyframes bomb-glow {
+            0% { transform: scale(1); filter: brightness(1); }
+            100% { transform: scale(1.08); filter: brightness(1.4); }
+        }
+
+        @keyframes bounce {
+            0% { transform: translateY(0); }
+            100% { transform: translateY(-4px); }
+        }
+
+        .tile.matched {
+            animation: match-pop 0.35s forwards cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        @keyframes pulse-border {
+            0% { border: 3px solid #f43f5e; }
+            100% { border: 3px solid #38bdf8; }
+        }
+
+        @keyframes match-pop {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.3) rotate(10deg); opacity: 0.8; filter: brightness(1.8); }
+            100% { transform: scale(0); opacity: 0; }
+        }
+
+        /* Custom Tile Themes Colors */
+        .tile-ovulo { background: linear-gradient(135deg, #f43f5e, #be123c); }
+        .tile-espermatozoide { background: linear-gradient(135deg, #0ea5e9, #0369a1); }
+        .tile-estrogeno { background: linear-gradient(135deg, #eab308, #ca8a04); }
+        .tile-progesterona { background: linear-gradient(135deg, #a855f7, #7e22ce); }
+        .tile-adn { background: linear-gradient(135deg, #10b981, #047857); }
+
+        .tile-acido_folico { background: linear-gradient(135deg, #84cc16, #4d7c0f); }
+        .tile-hierro { background: linear-gradient(135deg, #f97316, #c2410c); }
+        .tile-ecografia { background: linear-gradient(135deg, #06b6d4, #0e7490); }
+        .tile-latido { background: linear-gradient(135deg, #ec4899, #be185d); }
+        .tile-calcio { background: linear-gradient(135deg, #64748b, #334155); }
+
+        .tile-estetoscopio { background: linear-gradient(135deg, #6366f1, #4338ca); }
+        .tile-apgar { background: linear-gradient(135deg, #14b8a6, #0f766e); }
+        .tile-contacto_piel { background: linear-gradient(135deg, #f43f5e, #9f1239); }
+        .tile-brazalete { background: linear-gradient(135deg, #d946ef, #86198f); }
+        .tile-cuna { background: linear-gradient(135deg, #f59e0b, #b45309); }
+
+        /* Speech Bubble for Valeria */
+        .speech-bubble {
+            position: relative;
+            background: rgba(255, 255, 255, 0.95);
+            color: #1e1b4b;
+            border-radius: 18px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+        }
+        .speech-bubble::after {
+            content: '';
+            position: absolute;
+            left: -12px;
+            bottom: 20px;
+            border-width: 8px 12px 8px 0;
+            border-style: solid;
+            border-color: transparent rgba(255, 255, 255, 0.95) transparent transparent;
+        }
+
+        @media (max-width: 768px) {
+            .speech-bubble::after {
+                left: 20px;
+                top: -12px;
+                bottom: auto;
+                border-width: 0 8px 12px 8px;
+                border-color: transparent transparent rgba(255, 255, 255, 0.95) transparent;
+            }
+        }
+
+        .glow-text {
+            text-shadow: 0 0 10px rgba(244, 114, 182, 0.8), 0 0 20px rgba(168, 85, 247, 0.6);
+        }
+
+        /* Particle Overlay Canvas */
+        #fxCanvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            pointer-events: none;
+            z-index: 100;
+        }
+
+        .booster-active {
+            ring: 4px solid #facc15;
+            animation: pulse-booster 0.8s infinite alternate;
+        }
+
+        @keyframes pulse-booster {
+            0% { transform: scale(1); box-shadow: 0 0 10px #facc15; }
+            100% { transform: scale(1.05); box-shadow: 0 0 22px #facc15; }
+        }
+    </style>
+</head>
+<body class="bg-vivid-forest min-h-screen flex flex-col justify-between relative overflow-x-hidden">
+
+    <canvas id="fxCanvas"></canvas>
+
+    <header class="w-full bg-slate-900/90 backdrop-blur-md border-b border-pink-500/30 px-4 py-3 sticky top-0 z-40 shadow-xl">
+        <div class="max-w-5xl mx-auto flex flex-wrap items-center justify-between gap-3">
+            
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-full bg-gradient-to-tr from-pink-500 to-purple-600 flex items-center justify-center text-xl shadow-lg border border-white/20">
+                    <i class="fa-solid fa-tree text-emerald-300"></i>
+                </div>
+                <div>
+                    <h1 class="font-black text-transparent bg-clip-text bg-gradient-to-r from-pink-400 via-purple-300 to-teal-300 text-lg sm:text-xl tracking-wide glow-text">
+                        ObstetriCrush
+                    </h1>
+                    <div class="flex items-center gap-2">
+                        <p id="levelTitle" class="text-xs text-emerald-300 font-bold uppercase tracking-wider">Nivel 1: El Árbol de la Célula</p>
+                        <span id="difficultyBadge" class="text-[10px] bg-emerald-500/30 text-emerald-300 px-2 py-0.5 rounded-full border border-emerald-400/40 font-black">FÁCIL</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Stats Bar (Score, Moves, Progress) -->
+            <div class="flex items-center gap-4 bg-slate-950/60 border border-purple-500/30 px-4 py-1.5 rounded-2xl shadow-inner">
+                <div class="text-center">
+                    <span class="block text-[10px] text-purple-300 font-extrabold uppercase">Puntos</span>
+                    <span id="scoreText" class="text-base sm:text-lg font-black text-yellow-300">0</span>
+                </div>
+                <div class="w-px h-8 bg-purple-500/30"></div>
+                <div class="text-center">
+                    <span class="block text-[10px] text-pink-300 font-extrabold uppercase">Movimientos</span>
+                    <span id="movesText" class="text-base sm:text-lg font-black text-pink-400">15</span>
+                </div>
+                <div class="w-20 sm:w-28 flex flex-col gap-1">
+                    <div class="flex justify-between text-[10px] text-teal-300 font-bold">
+                        <span>Meta</span>
+                        <span id="progressPercent">0%</span>
+                    </div>
+                    <div class="w-full h-2.5 bg-slate-800 rounded-full overflow-hidden border border-teal-500/30">
+                        <div id="progressBar" class="h-full bg-gradient-to-r from-teal-400 to-emerald-400 transition-all duration-300 w-0"></div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </header>
+
+    <main class="max-w-5xl mx-auto w-full px-3 py-4 flex-grow flex flex-col md:flex-row items-center justify-center gap-6 z-10">
+
+        <!-- Left Column: Character Valeria & Speech Bubble -->
+        <div class="w-full md:w-1/3 flex flex-col sm:flex-row md:flex-col items-center gap-3">
+            <!-- Valeria Card -->
+            <div class="relative flex-shrink-0 group">
+                <div class="absolute -inset-1 bg-gradient-to-r from-pink-600 to-teal-400 rounded-full blur opacity-75 group-hover:opacity-100 transition duration-1000"></div>
+                <div class="relative w-28 h-28 sm:w-36 sm:h-36 md:w-44 md:h-44 rounded-full border-4 border-white overflow-hidden bg-gradient-to-b from-purple-800 to-pink-900 shadow-2xl flex items-center justify-center">
+                    <svg viewBox="0 0 200 200" class="w-full h-full object-cover">
+                        <defs>
+                            <linearGradient id="scrubsGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" stop-color="#0d9488"/>
+                                <stop offset="100%" stop-color="#0f766e"/>
+                            </linearGradient>
+                            <linearGradient id="hairGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+                                <stop offset="0%" stop-color="#3b0764"/>
+                                <stop offset="100%" stop-color="#1e1b4b"/>
+                            </linearGradient>
+                        </defs>
+                        <circle cx="100" cy="100" r="90" fill="#2e1065"/>
+                        <path d="M 40 100 Q 20 160 50 190 Q 100 200 150 190 Q 180 160 160 100 Q 150 40 100 35 Q 50 40 40 100 Z" fill="url(#hairGrad)"/>
+                        <path d="M 40 200 C 40 150 160 150 160 200 Z" fill="url(#scrubsGrad)"/>
+                        <path d="M 85 150 L 100 175 L 115 150 Z" fill="#fda4af"/>
+                        <path d="M 65 155 Q 100 195 135 155" stroke="#f1f5f9" stroke-width="6" fill="none" stroke-linecap="round"/>
+                        <circle cx="100" cy="180" r="8" fill="#e2e8f0"/>
+                        <ellipse cx="100" cy="105" rx="42" ry="48" fill="#fbcfe8"/>
+                        <ellipse cx="84" cy="100" rx="6" ry="8" fill="#1e1b4b"/>
+                        <ellipse cx="116" cy="100" rx="6" ry="8" fill="#1e1b4b"/>
+                        <circle cx="86" cy="98" r="2.5" fill="#ffffff"/>
+                        <circle cx="118" cy="98" r="2.5" fill="#ffffff"/>
+                        <path d="M 74 88 Q 84 84 92 88" stroke="#3b0764" stroke-width="3" fill="none" stroke-linecap="round"/>
+                        <path d="M 108 88 Q 116 84 126 88" stroke="#3b0764" stroke-width="3" fill="none" stroke-linecap="round"/>
+                        <path id="valeriaMouth" d="M 86 122 Q 100 138 114 122" stroke="#be123c" stroke-width="4" fill="none" stroke-linecap="round"/>
+                        <path d="M 58 85 Q 100 50 142 85 Q 130 55 100 52 Q 70 55 58 85 Z" fill="#581c87"/>
+                        <circle cx="138" cy="75" r="9" fill="#f43f5e"/>
+                        <circle cx="138" cy="75" r="4" fill="#fef08a"/>
+                    </svg>
+                </div>
+            </div>
+
+            <!-- Speech & Objectives Box -->
+            <div class="flex-1 w-full">
+                <div class="speech-bubble p-4 mb-3 border-2 border-pink-400">
+                    <p class="font-extrabold text-pink-600 text-xs uppercase tracking-wide flex items-center gap-1 mb-1">
+                        <i class="fa-solid fa-user-doctor"></i> Valeria dice:
+                    </p>
+                    <p id="valeriaSpeech" class="text-sm font-bold text-slate-800 leading-snug">
+                        ¡Hola! Soy Valeria. ¡Acompáñame a conectar las moléculas de la vida y crear Bombas Hormonales!
+                    </p>
+                </div>
+
+                <div class="bg-slate-900/90 border border-teal-500/40 rounded-2xl p-3 shadow-lg">
+                    <h2 class="text-xs font-black uppercase text-teal-300 tracking-wider mb-2 flex items-center gap-1.5">
+                        <i class="fa-solid fa-bullseye text-pink-400"></i> Objetivos del Nivel
+                    </h2>
+                    <div id="objectivesContainer" class="space-y-1.5">
+                        <!-- Dynamic Objectives -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column: Match-3 Game Board & Boosters -->
+        <div class="w-full md:w-2/3 flex flex-col items-center">
+            
+            <!-- Game Board Grid -->
+            <div id="board" class="board-grid w-full max-w-[420px] sm:max-w-[480px]">
+                <!-- Grid Cells dynamically created -->
+            </div>
+
+            <!-- Boosters Toolbar -->
+            <div class="mt-4 flex items-center justify-center gap-3 w-full max-w-[420px]">
+                <button id="boosterHammer" onclick="useBooster('hammer')" class="flex-1 bg-gradient-to-b from-amber-400 to-orange-600 hover:from-amber-300 hover:to-orange-500 text-slate-950 font-black py-2.5 px-3 rounded-2xl shadow-lg border-2 border-amber-200 transition active:scale-95 flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-hammer text-lg"></i>
+                    <div class="text-left text-xs leading-tight">
+                        <span class="block font-black">Martillo Fólico</span>
+                        <span class="text-[10px] text-amber-950 opacity-90">Rompe 1 ficha</span>
+                    </div>
+                </button>
+                <button id="boosterBomb" onclick="useBooster('bomb')" class="flex-1 bg-gradient-to-b from-pink-500 to-purple-700 hover:from-pink-400 hover:to-purple-600 text-white font-black py-2.5 px-3 rounded-2xl shadow-lg border-2 border-pink-200 transition active:scale-95 flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-bolt text-lg text-yellow-300"></i>
+                    <div class="text-left text-xs leading-tight">
+                        <span class="block font-black">Bomba Hormonal</span>
+                        <span class="text-[10px] text-pink-100 opacity-90">Limpia área 3x3</span>
+                    </div>
+                </button>
+            </div>
+        </div>
+    </main>
+
+    <div id="modal" class="fixed inset-0 bg-slate-950/85 backdrop-blur-md hidden items-center justify-center p-4 z-50 transition-opacity duration-300">
+        <div class="bg-gradient-to-b from-slate-900 to-purple-950 border-2 border-pink-500/50 rounded-3xl p-6 max-w-md w-full shadow-2xl relative overflow-hidden text-center transform scale-95 transition-transform duration-300" id="modalCard">
+            <div class="absolute -top-12 -left-12 w-32 h-32 bg-pink-500/20 rounded-full blur-2xl"></div>
+            <div class="absolute -bottom-12 -right-12 w-32 h-32 bg-teal-500/20 rounded-full blur-2xl"></div>
+
+            <div id="modalIcon" class="w-20 h-20 mx-auto mb-3 rounded-full bg-gradient-to-tr from-pink-500 to-purple-600 flex items-center justify-center text-4xl shadow-lg text-white border-2 border-white/30">
+                <i class="fa-solid fa-graduation-cap"></i>
+            </div>
+
+            <h3 id="modalTitle" class="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-pink-300 via-purple-200 to-teal-200 mb-2">
+                ¡Nivel Completado!
+            </h3>
+
+            <div class="bg-slate-900/80 border border-teal-400/30 rounded-2xl p-4 my-4 text-left shadow-inner">
+                <div class="flex items-center gap-2 mb-2 text-teal-300 font-extrabold text-xs uppercase tracking-wider">
+                    <i class="fa-solid fa-lightbulb text-amber-400 text-sm"></i>
+                    <span>Dato Obstétrico Clave</span>
+                </div>
+                <p id="modalTipText" class="text-slate-200 text-sm leading-relaxed font-medium">
+                    Explicación médica educativa...
+                </p>
+            </div>
+
+            <p id="modalSubtext" class="text-xs text-purple-300 font-bold mb-5">
+                ¡Has demostrado un excelente conocimiento en salud materna!
+            </p>
+
+            <button id="modalActionBtn" onclick="nextLevelOrRestart()" class="w-full bg-gradient-to-r from-pink-500 via-purple-500 to-teal-400 hover:opacity-90 text-slate-950 font-black py-3.5 px-6 rounded-2xl shadow-xl border border-white/40 text-base uppercase tracking-wider transition active:scale-98">
+                Continuar
+            </button>
+        </div>
+    </div>
+
+    <footer class="w-full text-center py-2 text-xs text-slate-400 font-medium bg-slate-950/60 backdrop-blur-sm z-10">
+        ObstetriCrush &copy; 2026 - Aprende y Celebra la Salud Materna
+    </footer>
+
+    <script>
+        const BOARD_SIZE = 7;
+
+        const LEVELS = [
+            {
+                id: 1,
+                name: "Nivel 1: El Árbol de la Célula",
+                difficulty: "FÁCIL",
+                diffColor: "bg-emerald-500/30 text-emerald-300 border-emerald-400/40",
+                moves: 15,
+                targetScore: 1200,
+                obstaclesCount: 0,
+                tiles: [
+                    { id: 'ovulo', name: 'Óvulo', icon: 'fa-circle-dot', class: 'tile-ovulo' },
+                    { id: 'espermatozoide', name: 'Espermatozoide', icon: 'fa-location-arrow', class: 'tile-espermatozoide' },
+                    { id: 'estrogeno', name: 'Estrógeno', icon: 'fa-flask', class: 'tile-estrogeno' },
+                    { id: 'progesterona', name: 'Progesterona', icon: 'fa-dna', class: 'tile-progesterona' },
+                    { id: 'adn', name: 'ADN', icon: 'fa-atom', class: 'tile-adn' }
+                ],
+                targets: [
+                    { id: 'ovulo', count: 12, current: 0, name: 'Óvulos' },
+                    { id: 'adn', count: 10, current: 0, name: 'ADN' }
+                ],
+                tipTitle: "¡Sabías que... la Fertilización es un Milagro Biológico!",
+                tip: "La fertilización ocurre cuando un espermatozoide se une al óvulo. ¡Junta 5 figuras iguales horizontal o verticalmente para crear una Bomba Hormonal!"
+            },
+            {
+                id: 2,
+                name: "Nivel 2: El Árbol de la Gestación",
+                difficulty: "MEDIO",
+                diffColor: "bg-amber-500/30 text-amber-300 border-amber-400/40",
+                moves: 13,
+                targetScore: 2200,
+                obstaclesCount: 4,
+                tiles: [
+                    { id: 'acido_folico', name: 'Ácido Fólico', icon: 'fa-capsules', class: 'tile-acido_folico' },
+                    { id: 'hierro', name: 'Hierro', icon: 'fa-apple-whole', class: 'tile-hierro' },
+                    { id: 'ecografia', name: 'Ecografía', icon: 'fa-display', class: 'tile-ecografia' },
+                    { id: 'latido', name: 'Latido Fetal', icon: 'fa-heart-pulse', class: 'tile-latido' },
+                    { id: 'calcio', name: 'Calcio', icon: 'fa-bone', class: 'tile-calcio' }
+                ],
+                targets: [
+                    { id: 'ecografia', count: 15, current: 0, name: 'Ecografías' },
+                    { id: 'acido_folico', count: 15, current: 0, name: 'Ácido Fólico' },
+                    { id: 'hierro', count: 10, current: 0, name: 'Hierro' }
+                ],
+                tipTitle: "¡Nutrición y Control Prenatal Vitales!",
+                tip: "El Ácido Fólico y el Hierro en el embarazo previenen la anemia y defectos del tubo neural. Combina fichas adyacentes a las fichas heladas para liberarlas."
+            },
+            {
+                id: 3,
+                name: "Nivel 3: El Árbol del Nacimiento",
+                difficulty: "DIFÍCIL",
+                diffColor: "bg-rose-500/30 text-rose-300 border-rose-400/40",
+                moves: 11,
+                targetScore: 3200,
+                obstaclesCount: 7,
+                tiles: [
+                    { id: 'estetoscopio', name: 'Pinard/Estetoscopio', icon: 'fa-stethoscope', class: 'tile-estetoscopio' },
+                    { id: 'apgar', name: 'Kit APGAR', icon: 'fa-notes-medical', class: 'tile-apgar' },
+                    { id: 'contacto_piel', name: 'Contacto Piel a Piel', icon: 'fa-hands-holding-child', class: 'tile-contacto_piel' },
+                    { id: 'brazalete', name: 'Identificación', icon: 'fa-id-card', class: 'tile-brazalete' },
+                    { id: 'cuna', name: 'Cuna Térmica', icon: 'fa-baby-carriage', class: 'tile-cuna' }
+                ],
+                targets: [
+                    { id: 'apgar', count: 18, current: 0, name: 'Kits APGAR' },
+                    { id: 'contacto_piel', count: 18, current: 0, name: 'Contactos Piel a Piel' },
+                    { id: 'cuna', count: 10, current: 0, name: 'Cunas Térmicas' }
+                ],
+                tipTitle: "¡Nacimiento Humanizado y Test APGAR!",
+                tip: "El contacto piel a piel regula la respiración y temperatura del recién nacido. ¡Aprovecha las Bombas y los Boosters para superar este desafío de nivel experto!"
+            }
+        ];
+
+        let currentLevelIdx = 0;
+        let score = 0;
+        let moves = 0;
+        let selectedTile = null;
+        let isAnimating = false;
+        let activeBooster = null;
+        let boardState = [];
+
+        /* Audio Effects Synthesizer */
+        const AudioFX = {
+            ctx: null,
+            init() {
+                if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+            },
+            playPop(freq = 400) {
+                try {
+                    this.init();
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(freq * 1.8, this.ctx.currentTime + 0.1);
+                    gain.gain.setValueAtTime(0.3, this.ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.1);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start();
+                    osc.stop(this.ctx.currentTime + 0.1);
+                } catch(e){}
+            },
+            playExplosion() {
+                try {
+                    this.init();
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(180, this.ctx.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(40, this.ctx.currentTime + 0.35);
+                    gain.gain.setValueAtTime(0.5, this.ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.35);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start();
+                    osc.stop(this.ctx.currentTime + 0.35);
+                } catch(e){}
+            },
+            playWin() {
+                try {
+                    this.init();
+                    const notes = [261, 329, 392, 523];
+                    notes.forEach((f, i) => {
+                        setTimeout(() => this.playPop(f * 1.2), i * 120);
+                    });
+                } catch(e){}
+            }
+        };
+
+        function setValeriaSpeech(text) {
+            document.getElementById('valeriaSpeech').textContent = text;
+        }
+
+        function updateProgressBar() {
+            const level = LEVELS[currentLevelIdx];
+            let totalRequired = level.targets.reduce((acc, t) => acc + t.count, 0);
+            let totalCurrent = level.targets.reduce((acc, t) => acc + Math.min(t.current, t.count), 0);
+            let pct = Math.min(100, Math.floor((totalCurrent / totalRequired) * 100));
+            
+            document.getElementById('progressBar').style.width = `${pct}%`;
+            document.getElementById('progressPercent').textContent = `${pct}%`;
+        }
+
+        function renderObjectivesUI() {
+            const level = LEVELS[currentLevelIdx];
+            const container = document.getElementById('objectivesContainer');
+            container.innerHTML = '';
+
+            level.targets.forEach(t => {
+                const item = document.createElement('div');
+                item.className = 'flex items-center justify-between text-xs font-bold text-slate-200 bg-slate-800/80 px-2.5 py-1.5 rounded-xl border border-teal-500/20';
+                
+                const isComplete = t.current >= t.count;
+                const checkIcon = isComplete ? '<i class="fa-solid fa-circle-check text-emerald-400"></i>' : '<i class="fa-regular fa-circle text-slate-400"></i>';
+
+                item.innerHTML = `
+                    <span class="flex items-center gap-1.5">${checkIcon} ${t.name}</span>
+                    <span class="${isComplete ? 'text-emerald-400' : 'text-pink-300'} font-black">${Math.min(t.current, t.count)} / ${t.count}</span>
+                `;
+                container.appendChild(item);
+            });
+        }
+
+        function useBooster(type) {
+            if (isAnimating) return;
+
+            const hammerBtn = document.getElementById('boosterHammer');
+            const bombBtn = document.getElementById('boosterBomb');
+
+            if (activeBooster === type) {
+                // Toggle off
+                activeBooster = null;
+                hammerBtn.classList.remove('booster-active');
+                bombBtn.classList.remove('booster-active');
+                setValeriaSpeech("Selección de booster cancelada.");
+                return;
+            }
+
+            activeBooster = type;
+            hammerBtn.classList.remove('booster-active');
+            bombBtn.classList.remove('booster-active');
+
+            if (type === 'hammer') {
+                hammerBtn.classList.add('booster-active');
+                setValeriaSpeech("🔨 ¡Haz clic en cualquier ficha del tablero para destruirla con el Martillo Fólico!");
+            } else if (type === 'bomb') {
+                bombBtn.classList.add('booster-active');
+                setValeriaSpeech("💣 ¡Haz clic en una ficha para hacer estallar una Bomba Hormonal en área 3x3!");
+            }
+        }
+
+        function loadLevel(levelIndex) {
+            currentLevelIdx = levelIndex;
+            const level = LEVELS[currentLevelIdx];
+
+            score = 0;
+            moves = level.moves;
+            selectedTile = null;
+            isAnimating = false;
+            activeBooster = null;
+
+            document.getElementById('boosterHammer').classList.remove('booster-active', 'opacity-50', 'pointer-events-none');
+            document.getElementById('boosterBomb').classList.remove('booster-active', 'opacity-50', 'pointer-events-none');
+
+            level.targets.forEach(t => t.current = 0);
+
+            document.getElementById('levelTitle').textContent = level.name;
+            const badge = document.getElementById('difficultyBadge');
+            badge.textContent = level.difficulty;
+            badge.className = `text-[10px] px-2 py-0.5 rounded-full font-black border ${level.diffColor}`;
+
+            document.getElementById('scoreText').textContent = score;
+            document.getElementById('movesText').textContent = moves;
+            updateProgressBar();
+
+            setValeriaSpeech(`¡Bienvenida al ${level.name}! Junta 5 fichas para crear Bombas Hormonales.`);
+
+            renderObjectivesUI();
+            createValidBoard();
+            renderBoard();
+        }
+
+        function createValidBoard() {
+            const level = LEVELS[currentLevelIdx];
+            const tileTypes = level.tiles;
+
+            do {
+                boardState = [];
+                for (let r = 0; r < BOARD_SIZE; r++) {
+                    boardState[r] = [];
+                    for (let c = 0; c < BOARD_SIZE; c++) {
+                        let available = tileTypes.filter(t => {
+                            if (r >= 2 && boardState[r-1][c]?.id === t.id && boardState[r-2][c]?.id === t.id) return false;
+                            if (c >= 2 && boardState[r][c-1]?.id === t.id && boardState[r][c-2]?.id === t.id) return false;
+                            return true;
+                        });
+                        let chosen = available[Math.floor(Math.random() * available.length)];
+                        boardState[r][c] = { ...chosen, isBomb: false, isObstacle: false, key: Math.random() };
+                    }
+                }
+            } while (!hasPossibleMatches());
+
+            let placedObstacles = 0;
+            while (placedObstacles < level.obstaclesCount) {
+                let r = Math.floor(Math.random() * (BOARD_SIZE - 2)) + 1;
+                let c = Math.floor(Math.random() * (BOARD_SIZE - 2)) + 1;
+                if (!boardState[r][c].isObstacle) {
+                    boardState[r][c].isObstacle = true;
+                    placedObstacles++;
+                }
+            }
+        }
+
+        function renderBoard() {
+            const boardEl = document.getElementById('board');
+            boardEl.style.gridTemplateColumns = `repeat(${BOARD_SIZE}, minmax(0, 1fr))`;
+            boardEl.innerHTML = '';
+
+            for (let r = 0; r < BOARD_SIZE; r++) {
+                for (let c = 0; c < BOARD_SIZE; c++) {
+                    const tileData = boardState[r][c];
+                    const tileDiv = document.createElement('div');
+                    tileDiv.dataset.row = r;
+                    tileDiv.dataset.col = c;
+
+                    if (!tileData) {
+                        tileDiv.className = 'tile opacity-0 pointer-events-none';
+                    } else {
+                        tileDiv.className = `tile ${tileData.class}`;
+
+                        if (tileData.isBomb) {
+                            tileDiv.classList.add('is-bomb');
+                        }
+                        if (tileData.isObstacle) {
+                            tileDiv.classList.add('is-obstacle');
+                        }
+
+                        tileDiv.innerHTML = `<i class="fa-solid ${tileData.icon} text-white drop-shadow-md pointer-events-none"></i>`;
+
+                        if (selectedTile && selectedTile.r === r && selectedTile.c === c) {
+                            tileDiv.classList.add('selected');
+                        }
+
+                        tileDiv.onclick = () => onTileClick(r, c);
+                    }
+                    boardEl.appendChild(tileDiv);
+                }
+            }
+        }
+
+        async function onTileClick(r, c) {
+            if (isAnimating) return;
+
+            // Handle Booster Click First
+            if (activeBooster) {
+                await applyBooster(r, c);
+                return;
+            }
+
+            // Normal Selection / Swap Logic
+            if (!selectedTile) {
+                selectedTile = { r, c };
+                renderBoard();
+                return;
+            }
+
+            if (selectedTile.r === r && selectedTile.c === c) {
+                selectedTile = null;
+                renderBoard();
+                return;
+            }
+
+            const isAdjacent = Math.abs(selectedTile.r - r) + Math.abs(selectedTile.c - c) === 1;
+
+            if (isAdjacent) {
+                const prevR = selectedTile.r;
+                const prevC = selectedTile.c;
+                await executeSwap(prevR, prevC, r, c);
+            } else {
+                selectedTile = { r, c };
+                renderBoard();
+            }
+        }
+
+        function swapBoardState(r1, c1, r2, c2) {
+            const temp = boardState[r1][c1];
+            boardState[r1][c1] = boardState[r2][c2];
+            boardState[r2][c2] = temp;
+        }
+
+        function checkMatches() {
+            let matchedCoords = new Set();
+            let bombCandidates = [];
+
+            // Horizontal Matches
+            for (let r = 0; r < BOARD_SIZE; r++) {
+                for (let c = 0; c < BOARD_SIZE - 2; c++) {
+                    let id1 = boardState[r][c]?.id;
+                    let id2 = boardState[r][c+1]?.id;
+                    let id3 = boardState[r][c+2]?.id;
+
+                    if (id1 && id1 === id2 && id2 === id3) {
+                        let matchLen = 3;
+                        while (c + matchLen < BOARD_SIZE && boardState[r][c + matchLen]?.id === id1) {
+                            matchLen++;
+                        }
+
+                        if (matchLen >= 5) {
+                            let centerCol = c + Math.floor(matchLen / 2);
+                            bombCandidates.push({ r, c: centerCol, tileInfo: { ...boardState[r][centerCol] } });
+                        }
+
+                        for (let k = 0; k < matchLen; k++) {
+                            matchedCoords.add(`${r},${c + k}`);
+                        }
+                    }
+                }
+            }
+
+            // Vertical Matches
+            for (let c = 0; c < BOARD_SIZE; c++) {
+                for (let r = 0; r < BOARD_SIZE - 2; r++) {
+                    let id1 = boardState[r][c]?.id;
+                    let id2 = boardState[r+1][c]?.id;
+                    let id3 = boardState[r+2][c]?.id;
+
+                    if (id1 && id1 === id2 && id2 === id3) {
+                        let matchLen = 3;
+                        while (r + matchLen < BOARD_SIZE && boardState[r + matchLen][c]?.id === id1) {
+                            matchLen++;
+                        }
+
+                        if (matchLen >= 5) {
+                            let centerRow = r + Math.floor(matchLen / 2);
+                            bombCandidates.push({ r: centerRow, c, tileInfo: { ...boardState[centerRow][c] } });
+                        }
+
+                        for (let k = 0; k < matchLen; k++) {
+                            matchedCoords.add(`${r + k},${c}`);
+                        }
+                    }
+                }
+            }
+
+            const matchArray = Array.from(matchedCoords).map(s => {
+                const [r, c] = s.split(',').map(Number);
+                return { r, c };
+            });
+
+            return {
+                matches: matchArray,
+                bombCandidates: bombCandidates
+            };
+        }
+
+        async function executeSwap(r1, c1, r2, c2) {
+            isAnimating = true;
+            selectedTile = null;
+
+            swapBoardState(r1, c1, r2, c2);
+            renderBoard();
+
+            let matchData = checkMatches();
+
+            if (matchData.matches.length > 0) {
+                moves--;
+                document.getElementById('movesText').textContent = moves;
+                AudioFX.playPop(500);
+
+                await processMatches(matchData);
+                checkGameStatus();
+            } else {
+                await new Promise(res => setTimeout(res, 250));
+                swapBoardState(r1, c1, r2, c2);
+                AudioFX.playPop(200);
+                renderBoard();
+                isAnimating = false;
+            }
+        }
+
+        async function processMatches(matchData) {
+            const level = LEVELS[currentLevelIdx];
+            const matches = matchData.matches || matchData;
+            const bombCandidates = matchData.bombCandidates || [];
+
+            const uniqueMatches = [];
+            const seen = new Set();
+            let bombsTriggered = [];
+
+            for (const m of matches) {
+                const key = `${m.r},${m.c}`;
+                if (!seen.has(key)) {
+                    seen.add(key);
+                    uniqueMatches.push(m);
+
+                    if (boardState[m.r][m.c]?.isBomb) {
+                        bombsTriggered.push(m);
+                    }
+                }
+            }
+
+            if (bombsTriggered.length > 0) {
+                AudioFX.playExplosion();
+                bombsTriggered.forEach(b => {
+                    for (let dr = -1; dr <= 1; dr++) {
+                        for (let dc = -1; dc <= 1; dc++) {
+                            let nr = b.r + dr;
+                            let nc = b.c + dc;
+                            if (nr >= 0 && nr < BOARD_SIZE && nc >= 0 && nc < BOARD_SIZE) {
+                                let key = `${nr},${nc}`;
+                                if (!seen.has(key)) {
+                                    seen.add(key);
+                                    uniqueMatches.push({ r: nr, c: nc });
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+
+            uniqueMatches.forEach(({ r, c }) => {
+                const tile = boardState[r][c];
+                if (!tile) return;
+
+                if (tile.isObstacle) {
+                    tile.isObstacle = false;
+                }
+
+                [[r-1,c],[r+1,c],[r,c-1],[r,c+1]].forEach(([ar, ac]) => {
+                    if (ar >= 0 && ar < BOARD_SIZE && ac >= 0 && ac < BOARD_SIZE) {
+                        if (boardState[ar][ac]?.isObstacle) {
+                            boardState[ar][ac].isObstacle = false;
+                        }
+                    }
+                });
+
+                const targetObj = level.targets.find(t => t.id === tile.id);
+                if (targetObj) {
+                    targetObj.current++;
+                }
+
+                score += 30;
+
+                const boardEl = document.getElementById('board');
+                const tileDom = boardEl.querySelector(`[data-row="${r}"][data-col="${c}"]`);
+                if (tileDom) {
+                    tileDom.classList.add('matched');
+                    const rect = tileDom.getBoundingClientRect();
+                    spawnParticles(rect.left + rect.width/2, rect.top + rect.height/2, 8);
+                }
+            });
+
+            if (bombCandidates.length > 0) {
+                score += 250;
+                setValeriaSpeech("💥 ¡¡INCREMENTO HORMONAL!! ¡Has creado una BOMBA al combinar 5 figuras!");
+            } else if (bombsTriggered.length > 0) {
+                score += 150;
+                setValeriaSpeech("💣 ¡BOOM! ¡La Bomba Hormonal despejó el área!");
+            } else if (uniqueMatches.length >= 4) {
+                score += 100;
+                setValeriaSpeech("¡Excelente jugada! ¡Puntaje extra!");
+            } else {
+                const phrases = ["¡Muy bien!", "¡Avanzando!", "¡Sigue así!", "¡Excelente!", "¡Buena combinación!"];
+                setValeriaSpeech(phrases[Math.floor(Math.random() * phrases.length)]);
+            }
+
+            document.getElementById('scoreText').textContent = score;
+            updateProgressBar();
+            renderObjectivesUI();
+
+            await new Promise(res => setTimeout(res, 300));
+
+            uniqueMatches.forEach(({ r, c }) => {
+                boardState[r][c] = null;
+            });
+
+            bombCandidates.forEach(b => {
+                boardState[b.r][b.c] = {
+                    ...b.tileInfo,
+                    isBomb: true,
+                    isObstacle: false,
+                    key: Math.random()
+                };
+            });
+
+            applyGravity();
+            renderBoard();
+
+            await new Promise(res => setTimeout(res, 250));
+
+            refillBoard();
+            renderBoard();
+
+            await new Promise(res => setTimeout(res, 300));
+
+            let nextMatchData = checkMatches();
+            if (nextMatchData.matches.length > 0) {
+                AudioFX.playPop(650);
+                await processMatches(nextMatchData);
+            } else {
+                if (!hasPossibleMatches()) {
+                    setValeriaSpeech("¡No hay combinaciones! Reorganizando tablero...");
+                    createValidBoard();
+                    renderBoard();
+                }
+                isAnimating = false;
+            }
+        }
+
+        async function applyBooster(r, c) {
+            isAnimating = true;
+            const type = activeBooster;
+            activeBooster = null;
+
+            document.getElementById('boosterHammer').classList.remove('booster-active');
+            document.getElementById('boosterBomb').classList.remove('booster-active');
+
+            let tilesToDestroy = [];
+
+            if (type === 'hammer') {
+                tilesToDestroy.push({ r, c });
+                document.getElementById('boosterHammer').classList.add('opacity-50', 'pointer-events-none');
+            } else if (type === 'bomb') {
+                for (let dr = -1; dr <= 1; dr++) {
+                    for (let dc = -1; dc <= 1; dc++) {
+                        let nr = r + dr;
+                        let nc = c + dc;
+                        if (nr >= 0 && nr < BOARD_SIZE && nc >= 0 && nc < BOARD_SIZE) {
+                            tilesToDestroy.push({ r: nr, c: nc });
+                        }
+                    }
+                }
+                document.getElementById('boosterBomb').classList.add('opacity-50', 'pointer-events-none');
+            }
+
+            AudioFX.playExplosion();
+            await processMatches({ matches: tilesToDestroy, bombCandidates: [] });
+            checkGameStatus();
+        }
+
+        function applyGravity() {
+            for (let c = 0; c < BOARD_SIZE; c++) {
+                let emptyRow = BOARD_SIZE - 1;
+                for (let r = BOARD_SIZE - 1; r >= 0; r--) {
+                    if (boardState[r][c] !== null) {
+                        if (r !== emptyRow) {
+                            boardState[emptyRow][c] = boardState[r][c];
+                            boardState[r][c] = null;
+                        }
+                        emptyRow--;
+                    }
+                }
+            }
+        }
+
+        function refillBoard() {
+            const level = LEVELS[currentLevelIdx];
+            const tileTypes = level.tiles;
+
+            for (let r = 0; r < BOARD_SIZE; r++) {
+                for (let c = 0; c < BOARD_SIZE; c++) {
+                    if (boardState[r][c] === null) {
+                        let chosen = tileTypes[Math.floor(Math.random() * tileTypes.length)];
+                        boardState[r][c] = { ...chosen, isBomb: false, isObstacle: false, key: Math.random() };
+                    }
+                }
+            }
+        }
+
+        function hasPossibleMatches() {
+            for (let r = 0; r < BOARD_SIZE; r++) {
+                for (let c = 0; c < BOARD_SIZE; c++) {
+                    if (c < BOARD_SIZE - 1) {
+                        swapBoardState(r, c, r, c + 1);
+                        let match = checkMatches().matches.length > 0;
+                        swapBoardState(r, c, r, c + 1);
+                        if (match) return true;
+                    }
+                    if (r < BOARD_SIZE - 1) {
+                        swapBoardState(r, c, r + 1, c);
+                        let match = checkMatches().matches.length > 0;
+                        swapBoardState(r, c, r + 1, c);
+                        if (match) return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+        function checkGameStatus() {
+            const level = LEVELS[currentLevelIdx];
+            const allTargetsMet = level.targets.every(t => t.current >= t.count);
+
+            if (allTargetsMet) {
+                AudioFX.playWin();
+                showModal(true);
+            } else if (moves <= 0) {
+                showModal(false);
+            }
+        }
+
+        function showModal(isWin) {
+            const level = LEVELS[currentLevelIdx];
+            const modal = document.getElementById('modal');
+            const icon = document.getElementById('modalIcon');
+            const title = document.getElementById('modalTitle');
+            const tipText = document.getElementById('modalTipText');
+            const subtext = document.getElementById('modalSubtext');
+            const btn = document.getElementById('modalActionBtn');
+
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+
+            if (isWin) {
+                icon.innerHTML = '<i class="fa-solid fa-trophy text-amber-300"></i>';
+                title.textContent = "¡Nivel Completado!";
+                tipText.textContent = level.tip;
+                subtext.textContent = "¡Excelente trabajo! Has superado los objetivos del nivel.";
+
+                if (currentLevelIdx < LEVELS.length - 1) {
+                    btn.textContent = "Siguiente Nivel";
+                } else {
+                    btn.textContent = "¡Jugar De Nuevo!";
+                }
+            } else {
+                icon.innerHTML = '<i class="fa-solid fa-heart-crack text-rose-400"></i>';
+                title.textContent = "¡Movimientos Agotados!";
+                tipText.textContent = level.tip;
+                subtext.textContent = "¡No te rindas! Intenta de nuevo usando las Bombas Hormonales.";
+                btn.textContent = "Reintentar Nivel";
+            }
+        }
+
+        function nextLevelOrRestart() {
+            document.getElementById('modal').classList.add('hidden');
+            document.getElementById('modal').classList.remove('flex');
+
+            const level = LEVELS[currentLevelIdx];
+            const allTargetsMet = level.targets.every(t => t.current >= t.count);
+
+            if (allTargetsMet) {
+                if (currentLevelIdx < LEVELS.length - 1) {
+                    loadLevel(currentLevelIdx + 1);
+                } else {
+                    loadLevel(0);
+                }
+            } else {
+                loadLevel(currentLevelIdx);
+            }
+        }
+
+        const canvas = document.getElementById('fxCanvas');
+        const ctx = canvas.getContext('2d');
+        let particles = [];
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        function spawnParticles(x, y, count = 10) {
+            const colors = ['#f43f5e', '#38bdf8', '#facc15', '#a855f7', '#10b981'];
+            for (let i = 0; i < count; i++) {
+                particles.push({
+                    x: x,
+                    y: y,
+                    vx: (Math.random() - 0.5) * 8,
+                    vy: (Math.random() - 0.5) * 8 - 2,
+                    size: Math.random() * 6 + 3,
+                    color: colors[Math.floor(Math.random() * colors.length)],
+                    alpha: 1,
+                    life: 1
+                });
+            }
+        }
+
+        function animateParticles() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            particles.forEach((p, index) => {
+                p.x += p.vx;
+                p.y += p.vy;
+                p.vy += 0.15; // Gravity
+                p.alpha -= 0.025;
+
+                ctx.save();
+                ctx.globalAlpha = Math.max(0, p.alpha);
+                ctx.fillStyle = p.color;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+
+                if (p.alpha <= 0) {
+                    particles.splice(index, 1);
+                }
+            });
+            requestAnimationFrame(animateParticles);
+        }
+
+        window.onload = function() {
+            animateParticles();
+            loadLevel(0);
+        };
+    </script>
+</body>
+</html>
